@@ -6,8 +6,9 @@ from PIL import Image, ImageDraw
 
 WIDTH = 500
 HEIGHT = 500
+MAX_R = min(WIDTH, HEIGHT) / 2
 MIN_DOT_AREA = 1  # 1 pixel
-MAX_DOT_AREA = np.pi * min(WIDTH, HEIGHT) ** 2  # 250 this is the largest dot that an fit entirely within the image
+MAX_DOT_AREA = np.pi * MAX_R ** 2  # 250 this is the largest dot that an fit entirely within the image
 
 
 def area(radius):
@@ -54,7 +55,7 @@ def size_dots(
     return areas
 
 
-def place_dots(radii):
+def place_dots_square(radii):
     rdx = rtree.index.Index()
     rdx.insert(1 + len(radii), (0, -1, WIDTH, 0))
     rdx.insert(2 + len(radii), (0, HEIGHT, WIDTH, HEIGHT + 1))
@@ -76,14 +77,35 @@ def place_dots(radii):
     return np.array(centers)
 
 
+def place_dots_circle(radii):
+    rdx = rtree.index.Index()
+    centers = list()
+    for i, r in enumerate(radii):
+        for _try in range(20000):
+            x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
+            if np.sqrt((x - WIDTH / 2)**2 + (y - HEIGHT / 2)**2) > MAX_R - 20 - r:
+                continue
+            box = np.array((x, y, x, y)) + 1.5 * np.array((-r, -r, r, r))
+            hits = list(rdx.intersection(box))
+            if 0 == len(hits):
+                rdx.insert(i, box)
+                centers.append((x, y))
+                break
+        else:
+            raise RuntimeError(f"failed to place dot {i}")
+
+    return np.array(centers)
+
+
 def main():
-    areas = size_dots(40, total_area=25000)
+    areas = size_dots(10, total_area=8000)
     radii = np.sqrt(areas / np.pi)
-    coords = place_dots(radii)
+    coords = place_dots_circle(radii)
 
     image = Image.new('RGBA', (WIDTH, HEIGHT))
     draw = ImageDraw.Draw(image)
     draw.rectangle([(0, 0), (WIDTH, HEIGHT)], fill='black', outline='black')
+    draw.circle((WIDTH / 2, HEIGHT / 2), MAX_R - 20, fill='black', outline='red')
     for c, r in zip(coords, radii):
         draw.circle(c, r, fill='cyan', outline='cyan')
 
