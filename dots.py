@@ -1,4 +1,5 @@
 import numpy as np
+import rtree
 from scipy.spatial import ConvexHull
 from PIL import Image, ImageDraw
 
@@ -53,15 +54,32 @@ def size_dots(
     return areas
 
 
-def main():
-    areas = size_dots(80, total_area=100000)
-    print(areas)
-    print(np.sum(areas))
+def place_dots(radii):
+    rdx = rtree.index.Index()
+    rdx.insert(1 + len(radii), (0, -1, WIDTH, 0))
+    rdx.insert(2 + len(radii), (0, HEIGHT, WIDTH, HEIGHT + 1))
+    rdx.insert(3 + len(radii), (-1, 0, 0, HEIGHT))
+    rdx.insert(3 + len(radii), (WIDTH, 0, WIDTH + 1, HEIGHT))
+    centers = list()
+    for i, r in enumerate(radii):
+        for _try in range(10000):
+            x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
+            box = np.array((x, y, x, y)) + 1.5 * np.array((-r, -r, r, r))
+            hits = list(rdx.intersection(box))
+            if 0 == len(hits):
+                rdx.insert(i, box)
+                centers.append((x, y))
+                break
+        else:
+            raise RuntimeError(f"failed to place dot {i}")
 
-    x_coords = np.random.randint(0, WIDTH, len(areas))
-    y_coords = np.random.randint(0, HEIGHT, len(areas))
-    coords = np.column_stack((x_coords, y_coords))
+    return np.array(centers)
+
+
+def main():
+    areas = size_dots(40, total_area=25000)
     radii = np.sqrt(areas / np.pi)
+    coords = place_dots(radii)
 
     image = Image.new('RGBA', (WIDTH, HEIGHT))
     draw = ImageDraw.Draw(image)
