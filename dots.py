@@ -109,6 +109,14 @@ def main():
     for c, r in zip(coords, radii):
         draw.circle(c, r, fill='cyan', outline='cyan')
 
+    hull = ConvexHull(coords)
+    for i,j in zip(hull.vertices[:-1], hull.vertices[1:]):
+        foo = np.concat([coords[i], coords[j]])
+        draw.line(tuple(foo), fill="white")
+    i, j = hull.vertices[-1], hull.vertices[0]
+    foo = np.concat([coords[i], coords[j]])
+    draw.line(tuple(foo), fill="white")
+
     image.save('test.png')
 
 
