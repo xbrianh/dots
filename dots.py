@@ -1,5 +1,6 @@
 import numpy as np
 import rtree
+from contextlib import suppress
 from scipy.spatial import ConvexHull
 from PIL import Image, ImageDraw
 
@@ -137,7 +138,12 @@ def generate_dots(
     enclosing_circle_radius = compute_radius(desired_hull)
     areas = size_dots_uniform_distribution(number_of_dots, total_area=total_dot_area)  # , bin_width=600)
     radii = np.sqrt(areas / np.pi)
-    coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
+    for _ in range(10):
+        with suppress(RuntimeError):
+            coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
+            break
+    else:
+        raise RuntimeError("too hard to generate the dots sorry. try fewer dots or larger hull or smaller total dot area.")
     for _ in range(3):
         hull = compute_hull(coords, radii)
         factor = desired_hull / hull.volume
