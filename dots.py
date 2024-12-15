@@ -124,7 +124,7 @@ def draw_dots(coords, radii, supersampling_factor: int = 4):
     draw = ImageDraw.Draw(image)
     draw.rectangle([(0, 0), (width, height)], fill='black', outline='black')
     for c, r in zip(coords, radii):
-        draw.circle(c, r, fill='cyan', outline='cyan')
+        draw.circle(c, r, fill='green', outline='green')
     image = image.resize((WIDTH, HEIGHT), resample=Image.LANCZOS)
     return image
     # image.save('test.png')
