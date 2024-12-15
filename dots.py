@@ -85,7 +85,7 @@ def place_dots_circle(radii, enclosing_radius: int = MAX_R):
     rdx = rtree.index.Index()
     centers = list()
     for i, r in enumerate(radii):
-        for _try in range(20000):
+        for _try in range(400000):
             x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
             if np.sqrt((x - WIDTH / 2)**2 + (y - HEIGHT / 2)**2) > enclosing_radius - r:
                 continue
@@ -112,11 +112,23 @@ def compute_hull(coords, radii):
     return hull
 
 
+def draw_hull(draw, hull):
+    for i,j in zip(hull.vertices[:-1], hull.vertices[1:]):
+        foo = np.concat([hull.points[i], hull.points[j]])
+        draw.line(tuple(foo), fill="white")
+    i, j = hull.vertices[-1], hull.vertices[0]
+    foo = np.concat([hull.points[i], hull.points[j]])
+    draw.line(tuple(foo), fill="white")
+
+
 def main():
-    desired_hull = 100000.0
+    desired_hull = 160000.0
     enclosing_circle_radius = compute_radius(desired_hull)
 
-    areas = size_dots(20, total_area=14000)
+    area_per_dot = 350.
+    num_dots = 80
+
+    areas = size_dots(num_dots, total_area=num_dots * area_per_dot, standard_dev=200)
     radii = np.sqrt(areas / np.pi)
     coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
 
@@ -128,21 +140,11 @@ def main():
         coords = coords + (WIDTH / 2, HEIGHT / 2)
         hull = compute_hull(coords, radii)
 
-    print(factor)
-    print(hull.volume)
-
     image = Image.new('RGBA', (WIDTH, HEIGHT))
     draw = ImageDraw.Draw(image)
     draw.rectangle([(0, 0), (WIDTH, HEIGHT)], fill='black', outline='black')
-    draw.circle((WIDTH / 2, HEIGHT / 2), enclosing_circle_radius, fill='black', outline='red')
     for c, r in zip(coords, radii):
         draw.circle(c, r, fill='cyan', outline='cyan')
-    for i,j in zip(hull.vertices[:-1], hull.vertices[1:]):
-        foo = np.concat([hull.points[i], hull.points[j]])
-        draw.line(tuple(foo), fill="white")
-    i, j = hull.vertices[-1], hull.vertices[0]
-    foo = np.concat([hull.points[i], hull.points[j]])
-    draw.line(tuple(foo), fill="white")
 
     image.save('test.png')
 
