@@ -19,30 +19,23 @@ def compute_radius(area):
     return np.sqrt(area / np.pi)
 
 
-def size_dots(
+def size_dots_uniform_distribution(
     number_of_dots: int,
     *,
     total_area: int = 8000,
-    min_dot_area: int | None = None,
-    max_dot_area: int | None = None,
-    standard_dev: float | None = 350.0,
+    bin_width: int | None = None,
 ):
-    """Create dots. The area of each dot is drawn from a uniform distribution."""
+    """Create dots. The area of each dot is drawn from a uniform distribution.
+
+    the bin width of the uniform distribution used to size dots. The bin will be centered on the average dot area (total_area / number_of_dots)
+    The minimum and maximum areas are average_area - binw_width / 2, average_area + bin_width / 2
+    """
     average_area = total_area / number_of_dots
-    if min_dot_area is None and max_dot_area is None:
-        bin_width = np.sqrt(12) * standard_dev  # this comes from the formula for variane of a uniform distribution
-        min_dot_area = average_area - bin_width / 2
-        max_dot_area = average_area + bin_width / 2
-    elif min_dot_area is not None:
-        if min_dot_area >= average_area:
-            raise ValueError('min_dot_area must be less than average_area')
-        max_dot_area = average_area + (average_area - min_dot_area)
-        bin_width = max_dot_area - min_dot_area
-    elif max_dot_area is not None:
-        if average_area <= max_dot_area:
-            raise ValueError('max_dot_area must be greater than average_area')
-        min_dot_area = average_area - (max_dot_area - average_area)
-        bin_width = max_dot_area - min_dot_area
+    if bin_width is None:
+        bin_width = average_area * 1.5
+
+    min_dot_area = average_area - bin_width / 2
+    max_dot_area = average_area + bin_width / 2
 
     if MAX_DOT_AREA < max_dot_area:
         raise ValueError("max_dot_area cannot fit into image! Try different parameters")
@@ -85,7 +78,7 @@ def place_dots_circle(radii, enclosing_radius: int = MAX_R):
     rdx = rtree.index.Index()
     centers = list()
     for i, r in enumerate(radii):
-        for _try in range(400000):
+        for _try in range(100000):
             x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
             if np.sqrt((x - WIDTH / 2)**2 + (y - HEIGHT / 2)**2) > enclosing_radius - r:
                 continue
@@ -135,17 +128,15 @@ def draw_dots(coords, radii, supersampling_factor: int = 4):
     image.save('test.png')
 
 
-def main():
-    desired_hull = 160000.0
+def generate_dots(
+    number_of_dots: int = 80,
+    total_dot_area = 28000,
+    desired_hull: float = 160000.0,
+):
     enclosing_circle_radius = compute_radius(desired_hull)
-
-    area_per_dot = 350.
-    num_dots = 80
-
-    areas = size_dots(num_dots, total_area=num_dots * area_per_dot, standard_dev=200)
+    areas = size_dots_uniform_distribution(number_of_dots, total_area=total_dot_area)  # , bin_width=600)
     radii = np.sqrt(areas / np.pi)
     coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
-
     for _ in range(3):
         hull = compute_hull(coords, radii)
         factor = desired_hull / hull.volume
@@ -153,9 +144,8 @@ def main():
         coords = coords * np.sqrt(factor)
         coords = coords + (WIDTH / 2, HEIGHT / 2)
         hull = compute_hull(coords, radii)
-
     draw_dots(coords, radii)
 
 
 if __name__ == '__main__':
-    main()
+    generate_dots()
