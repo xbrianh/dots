@@ -121,6 +121,20 @@ def draw_hull(draw, hull):
     draw.line(tuple(foo), fill="white")
 
 
+def draw_dots(coords, radii, supersampling_factor: int = 4):
+    coords *= supersampling_factor
+    radii *= supersampling_factor
+    width = supersampling_factor * WIDTH
+    height = supersampling_factor * HEIGHT
+    image = Image.new('RGBA', (width, height))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([(0, 0), (width, height)], fill='black', outline='black')
+    for c, r in zip(coords, radii):
+        draw.circle(c, r, fill='cyan', outline='cyan')
+    image = image.resize((WIDTH, HEIGHT), resample=Image.LANCZOS)
+    image.save('test.png')
+
+
 def main():
     desired_hull = 160000.0
     enclosing_circle_radius = compute_radius(desired_hull)
@@ -140,13 +154,7 @@ def main():
         coords = coords + (WIDTH / 2, HEIGHT / 2)
         hull = compute_hull(coords, radii)
 
-    image = Image.new('RGBA', (WIDTH, HEIGHT))
-    draw = ImageDraw.Draw(image)
-    draw.rectangle([(0, 0), (WIDTH, HEIGHT)], fill='black', outline='black')
-    for c, r in zip(coords, radii):
-        draw.circle(c, r, fill='cyan', outline='cyan')
-
-    image.save('test.png')
+    draw_dots(coords, radii)
 
 
 if __name__ == '__main__':
