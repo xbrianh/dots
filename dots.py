@@ -127,7 +127,6 @@ def draw_dots(coords, radii, supersampling_factor: int = 4):
         draw.circle(c, r, fill='green', outline='green')
     image = image.resize((WIDTH, HEIGHT), resample=Image.LANCZOS)
     return image
-    # image.save('test.png')
 
 
 def generate_dots(
@@ -152,8 +151,9 @@ def generate_dots(
         coords = coords + (WIDTH / 2, HEIGHT / 2)
         hull = compute_hull(coords, radii)
     return coords, radii
-    # draw_dots(coords, radii)
 
 
 if __name__ == '__main__':
-    generate_dots()
+    coords, radii = generate_dots()
+    image = draw_dots(coords, radii)
+    image.save("test.png")
