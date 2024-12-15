@@ -11,8 +11,12 @@ MIN_DOT_AREA = 1  # 1 pixel
 MAX_DOT_AREA = np.pi * MAX_R ** 2  # 250 this is the largest dot that an fit entirely within the image
 
 
-def area(radius):
+def compute_area(radius):
     return np.pi * radius ** 2
+
+
+def compute_radius(area):
+    return np.sqrt(area / np.pi)
 
 
 def size_dots(
@@ -77,13 +81,13 @@ def place_dots_square(radii):
     return np.array(centers)
 
 
-def place_dots_circle(radii):
+def place_dots_circle(radii, enclosing_radius: int = MAX_R):
     rdx = rtree.index.Index()
     centers = list()
     for i, r in enumerate(radii):
         for _try in range(20000):
             x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
-            if np.sqrt((x - WIDTH / 2)**2 + (y - HEIGHT / 2)**2) > MAX_R - 20 - r:
+            if np.sqrt((x - WIDTH / 2)**2 + (y - HEIGHT / 2)**2) > enclosing_radius - r:
                 continue
             box = np.array((x, y, x, y)) + 1.5 * np.array((-r, -r, r, r))
             hits = list(rdx.intersection(box))
@@ -97,24 +101,47 @@ def place_dots_circle(radii):
     return np.array(centers)
 
 
+def compute_hull(coords, radii):
+    hull_input_coords = list()
+    for c, r in zip(coords, radii):
+        hull_input_coords.append(c + np.array((r, r)))
+        hull_input_coords.append(c + np.array((r, -r)))
+        hull_input_coords.append(c + np.array((-r, -r)))
+        hull_input_coords.append(c + np.array((-r, r)))
+    hull = ConvexHull(hull_input_coords)
+    return hull
+
+
 def main():
-    areas = size_dots(10, total_area=8000)
+    desired_hull = 100000.0
+    enclosing_circle_radius = compute_radius(desired_hull)
+
+    areas = size_dots(20, total_area=14000)
     radii = np.sqrt(areas / np.pi)
-    coords = place_dots_circle(radii)
+    coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
+
+    for _ in range(3):
+        hull = compute_hull(coords, radii)
+        factor = desired_hull / hull.volume
+        coords = coords - (WIDTH / 2, HEIGHT / 2)
+        coords = coords * np.sqrt(factor)
+        coords = coords + (WIDTH / 2, HEIGHT / 2)
+        hull = compute_hull(coords, radii)
+
+    print(factor)
+    print(hull.volume)
 
     image = Image.new('RGBA', (WIDTH, HEIGHT))
     draw = ImageDraw.Draw(image)
     draw.rectangle([(0, 0), (WIDTH, HEIGHT)], fill='black', outline='black')
-    draw.circle((WIDTH / 2, HEIGHT / 2), MAX_R - 20, fill='black', outline='red')
+    draw.circle((WIDTH / 2, HEIGHT / 2), enclosing_circle_radius, fill='black', outline='red')
     for c, r in zip(coords, radii):
         draw.circle(c, r, fill='cyan', outline='cyan')
-
-    hull = ConvexHull(coords)
     for i,j in zip(hull.vertices[:-1], hull.vertices[1:]):
-        foo = np.concat([coords[i], coords[j]])
+        foo = np.concat([hull.points[i], hull.points[j]])
         draw.line(tuple(foo), fill="white")
     i, j = hull.vertices[-1], hull.vertices[0]
-    foo = np.concat([coords[i], coords[j]])
+    foo = np.concat([hull.points[i], hull.points[j]])
     draw.line(tuple(foo), fill="white")
 
     image.save('test.png')
