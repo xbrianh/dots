@@ -130,9 +130,9 @@ def draw_dots(coords, radii, supersampling_factor: int = 4):
 
 
 def generate_dots(
-    number_of_dots: int = 80,
-    total_dot_area = 28000,
-    desired_hull: float = 160000.0,
+    number_of_dots: int = 60,
+    total_dot_area = 24000,
+    desired_hull: float = 140000.0,
 ):
     enclosing_circle_radius = compute_radius(desired_hull)
     areas = size_dots_uniform_distribution(number_of_dots, total_area=total_dot_area)  # , bin_width=600)
