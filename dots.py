@@ -130,7 +130,7 @@ def draw_dots(coords, radii, supersampling_factor: int = 4):
 
 
 def generate_dots(
-    number_of_dots: int = 60,
+    number_of_dots: int = 40,
     total_dot_area = 24000,
     desired_hull: float = 140000.0,
 ):
