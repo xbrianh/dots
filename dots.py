@@ -53,7 +53,7 @@ def size_dots_uniform_distribution(
     return areas
 
 
-def place_dots_square(radii):
+def place_dots_square(radii, enclosing_side_length):
     rdx = rtree.index.Index()
     rdx.insert(1 + len(radii), (0, -1, WIDTH, 0))
     rdx.insert(2 + len(radii), (0, HEIGHT, WIDTH, HEIGHT + 1))
@@ -63,6 +63,8 @@ def place_dots_square(radii):
     for i, r in enumerate(radii):
         for _try in range(10000):
             x, y = np.random.randint(0, WIDTH), np.random.randint(0, HEIGHT)
+            if (abs(x - WIDTH / 2) > enclosing_side_length / 2) or (abs(y - HEIGHT / 2) > enclosing_side_length / 2):
+                continue
             box = np.array((x, y, x, y)) + 1.5 * np.array((-r, -r, r, r))
             hits = list(rdx.intersection(box))
             if 0 == len(hits):
@@ -133,13 +135,24 @@ def generate_dots(
     number_of_dots: int = 40,
     total_dot_area = 24000,
     desired_hull: float = 140000.0,
+    number_of_tries: int = 10,
+    shape: str = "circle",
 ):
-    enclosing_circle_radius = compute_radius(desired_hull)
+    match shape:
+        case "circle":
+            enclosing_dimension = compute_radius(desired_hull)
+            place_dots = place_dots_circle
+        case "square":
+            enclosing_dimension = np.sqrt(desired_hull)
+            place_dots = place_dots_square
+        case _:
+            raise ValueError("Shape must be either 'circle' or 'square'")
+
     areas = size_dots_uniform_distribution(number_of_dots, total_area=total_dot_area)  # , bin_width=600)
     radii = np.sqrt(areas / np.pi)
-    for _ in range(10):
+    for _ in range(number_of_tries):
         with suppress(RuntimeError):
-            coords = place_dots_circle(radii, enclosing_radius=enclosing_circle_radius)
+            coords = place_dots(radii, enclosing_dimension)
             break
     else:
         raise RuntimeError("too hard to generate the dots sorry. try fewer dots or larger hull or smaller total dot area.")
